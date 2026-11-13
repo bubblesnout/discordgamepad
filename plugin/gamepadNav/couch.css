@@ -1,0 +1,73 @@
+/*
+ * GamepadNav couch theme: bigger text and targets, less clutter.
+ * Discord's class names are hashed, so this matches on stable parts
+ * (aria-labels, hrefs, list ids, class-name prefixes). Anything that stops
+ * matching after a Discord update just stops applying; nothing breaks.
+ * Toggle in Vencord > Plugins > GamepadNav > Couch theme.
+ */
+
+/* ---- bigger, easier to read from the couch ---- */
+[class*="messageContent"] {
+    font-size: 1.2rem !important;
+    line-height: 1.5 !important;
+}
+
+[class*="username_"] {
+    font-size: 1.1rem !important;
+}
+
+#channels [class*="name_"],
+nav[aria-label="Private channels"] [class*="name_"],
+[data-list-id="channels"] [class*="name_"] {
+    font-size: 1.05rem !important;
+}
+
+/* taller rows = bigger focus targets */
+#channels li [class*="link_"],
+nav[aria-label="Private channels"] li a {
+    min-height: 40px !important;
+}
+
+/* ---- clutter that's useless with a controller ---- */
+[aria-label="Send a gift"],
+[aria-label="Open sticker picker"],
+[aria-label="Apps"],
+[aria-label="Help"],
+[aria-label="Download Apps"],
+[data-list-item-id="guildsnav___guild-discover-button"],
+[data-list-item-id="guildsnav___app-download-button"],
+a[href="/store"],
+a[href="/shop"],
+a[href="/quests/home"],
+li:has(> div > a[href="/store"]),
+li:has(> div > a[href="/shop"]),
+li:has(> div > a[href="/quests/home"]),
+[class*="nowPlayingColumn"],
+[class*="premiumTrialAcknowledgedBadge"],
+[class*="channelAppLauncher"] {
+    display: none !important;
+}
+
+/* keep the voice "connected" panel prominent: it's where Go Live lives */
+section[aria-label="User area"] [class*="actionButtons"] button {
+    min-height: 40px !important;
+}
+
+/* ---- 10-foot mode: chat goes full width, the plugin's menu replaces the sidebars ---- */
+body.vc-gpn-10ft nav[aria-label="Servers sidebar"],
+body.vc-gpn-10ft nav[class*="guilds_"],
+body.vc-gpn-10ft [class^="sidebar_"]:has(#channels),
+body.vc-gpn-10ft [class^="sidebar_"]:has(nav[aria-label="Private channels"]),
+body.vc-gpn-10ft [class*="membersWrap_"],
+body.vc-gpn-10ft [class*="profilePanel_"] {
+    display: none !important;
+}
+
+body.vc-gpn-10ft main[class*="chatContent_"] [class*="messageContent"] {
+    font-size: 1.35rem !important;
+}
+
+/* under the Steam host the window controls do nothing useful */
+body.vc-gpn-10ft [class*="winButton"] {
+    display: none !important;
+}
