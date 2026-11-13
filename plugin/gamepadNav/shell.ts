@@ -192,6 +192,13 @@ function confirmHandle(btn: Dir | "a" | "x" | "y") {
     }
 }
 
+/** B on the top level of a tab other than Home: go to Home. */
+export function backToHome(): boolean {
+    if (tab === "home" || confirm) return false;
+    show("home");
+    return true;
+}
+
 /** B on the top level of Home: offer to quit. Returns true if handled. */
 export function backAtHome(onQuit: () => void): boolean {
     if (tab !== "home" || confirm) return false;
@@ -449,7 +456,7 @@ export function render() {
         cur?.onY ? glyph("y", "Y", "Call") : "",
         glyph("view", "⧉", "Help"),
         cur?.onA ? glyph("a", "A", cur.onLeft ? "Mute" : "Select") : "",
-        glyph("b", "B", tab === "servers" && drillGuild ? "Back" : tab === "home" ? "Quit" : "Close"),
+        glyph("b", "B", tab === "servers" && drillGuild ? "Back" : tab === "home" ? "Quit" : "Home"),
     ].join("");
     if (footer.innerHTML !== hints) footer.innerHTML = hints;
     if (html !== lastHtml) {
@@ -517,7 +524,7 @@ function onTap(e: MouseEvent) {
     if (tabEl) return show(tabEl.dataset.tab as Tab);
     const btn = t.closest<HTMLElement>("[data-btn]")?.dataset.btn;
     if (btn) {
-        if (btn === "b") { if (!back() && !(quitFn && backAtHome(quitFn))) { hide(); onEnterChat?.(); } return; }
+        if (btn === "b") { if (!back() && !backToHome() && !(quitFn && backAtHome(quitFn))) { hide(); onEnterChat?.(); } return; }
         if (btn === "a" || btn === "x" || btn === "y") return handle(btn);
         return;
     }

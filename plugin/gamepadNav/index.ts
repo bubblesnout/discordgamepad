@@ -224,6 +224,7 @@ function onPress(b: Btn) {
     if (S.isOpen()) {
         if (b === "B") {
             if (S.back()) return; // closes a dialog or leaves a server
+            if (S.backToHome()) return; // other tabs: B goes Home first
             if (S.backAtHome(quitDiscord)) return;
             leaveShell();
             return;
@@ -408,7 +409,8 @@ export default definePlugin({
         S.setOnClassic(() => setClassic(true));
         S.setOnQuit(quitDiscord);
         document.body.classList.toggle("vc-gpn-10ft", settings.store.tenFoot);
-        if (settings.store.openOnStart) setTimeout(() => S.show("home"), 1500);
+        // open straight away (no delay), so Discord's own Friends page never flashes up
+        if (settings.store.openOnStart) S.show("home");
         if (settings.store.couchTheme) enableStyle(couchStyle);
         N.mountRing();
         window.addEventListener("gamepadconnected", onConnect);

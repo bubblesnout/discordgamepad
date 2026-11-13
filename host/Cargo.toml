@@ -40,3 +40,6 @@ features = [
 opt-level = 3
 lto = true
 panic = "abort"
+
+[build-dependencies]
+embed-resource = "2.5"
