@@ -94,3 +94,8 @@ esbuild then can't resolve Vencord's import aliases), so edit the copy in `plugi
   `.\setup.ps1 -Inject`. Keep the `vencord` folder: Discord loads the build from it.
 - Optional: turn off "Open Discord" on Windows startup, so the host doesn't have to
   restart an already-running Discord.
+
+## Licence
+
+GPL-3.0, the same as Vencord. See [LICENSE](LICENSE).
+
