@@ -240,3 +240,37 @@ export function recordVoiceJoin(channelId: string | null | undefined) {
 /** Recently joined server voice channels that still exist, newest first. */
 export const recentVoiceChannels = () =>
     recentVoice.map(id => ChannelStore.getChannel(id)).filter((c: any) => c?.guild_id);
+
+/* ---------- watching someone's stream ---------- */
+
+/**
+ * Watch a stream in your current voice channel: ask Discord to start watching
+ * (same action as clicking "Watch Stream"), then open the channel's call view,
+ * where the stream shows. Falls back to clicking the button if the action
+ * module can't be found.
+ */
+export async function watchStream(userId: string): Promise<string> {
+    const vc = currentVoiceChannel();
+    if (!vc) return "Join the voice channel first";
+    const S: any = ApplicationStreamingStore;
+    const stream = S.getStreamForUser?.(userId, vc.guild_id ?? null) ?? S.getAnyStreamForUser?.(userId);
+    if (!stream) return "They're not streaming right now";
+
+    NavigationRouter.transitionTo(`/channels/${vc.guild_id ?? "@me"}/${vc.id}`);
+
+    const actions = mod("watchStream", "stopStream") ?? mod("watchStream");
+    if (actions?.watchStream) {
+        try {
+            actions.watchStream(stream);
+            return "Watching";
+        } catch (e) {
+            log.error("watchStream failed", e);
+        }
+    }
+    const btn = await waitFor(() => findButton(/^Watch( Stream)?$/i), 3000);
+    if (btn) {
+        btn.click();
+        return "Watching";
+    }
+    return "Couldn't start the stream";
+}

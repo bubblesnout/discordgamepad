@@ -35,6 +35,7 @@ interface Item {
     onA?(): any;
     onX?(): any;
     onY?(): any;
+    yLabel?: string; // footer hint for Y (default "Call")
     onLeft?(): any;
     onRight?(): any;
 }
@@ -388,6 +389,24 @@ function voiceView(): Section[] {
         });
         const myId = A.me()?.id;
         const members = A.voiceMembers(vc.id).filter(m => m.user.id !== myId);
+        const watch = async (id: string) => {
+            const msg = await A.watchStream(id);
+            toast(msg);
+            if (msg === "Watching") { hide(); onEnterChat?.(); }
+        };
+        const streamers = members.filter(m => m.state.selfStream);
+        if (streamers.length) out.push({
+            title: "Live in this channel  ·  A watch",
+            layout: "small",
+            items: streamers.map(({ user }) => ({
+                id: `s-${user.id}`,
+                label: `Watch ${A.displayName(user)}`,
+                sub: "Streaming",
+                tone: "live" as const,
+                img: userAvatar(user),
+                onA: () => watch(user.id),
+            })),
+        });
         out.push({
             title: "Volume  ·  ◀ ▶ adjust · A mute for me · X reset",
             layout: "list",
@@ -407,6 +426,7 @@ function voiceView(): Section[] {
                     onLeft: () => A.setLocalVolume(user.id, vol - settingsRef.volumeStep),
                     onRight: () => A.setLocalVolume(user.id, vol + settingsRef.volumeStep),
                     onX: () => A.setLocalVolume(user.id, 100),
+                    ...(state.selfStream ? { onY: () => watch(user.id), yLabel: "Watch" } : {}),
                     onA: () => A.toggleLocalMute(user.id),
                 };
             }),
@@ -457,7 +477,7 @@ export function render() {
     const hints = [
         cur?.onLeft ? glyph("dpad", "◀ ▶", "Volume") : "",
         cur?.onX ? glyph("x", "X", "Reset") : "",
-        cur?.onY ? glyph("y", "Y", "Call") : "",
+        cur?.onY ? glyph("y", "Y", cur.yLabel ?? "Call") : "",
         glyph("view", "⧉", "Help"),
         cur?.onA ? glyph("a", "A", cur.onLeft ? "Mute" : "Select") : "",
         glyph("b", "B", tab === "servers" && drillGuild ? "Back" : tab === "home" ? "Quit" : "Home"),
