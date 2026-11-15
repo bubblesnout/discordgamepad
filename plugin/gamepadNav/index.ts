@@ -95,7 +95,7 @@ const settings = definePluginSettings({
     },
     font: {
         type: OptionType.STRING,
-        description: "Font (pick it from the menu: Home › More › Font)",
+        description: "Font (pick it from the menu: profile tab › Font)",
         default: "default",
         hidden: true,
     },

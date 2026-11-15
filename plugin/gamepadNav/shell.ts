@@ -20,9 +20,10 @@ import * as A from "./actions";
 import type { Dir } from "./nav";
 import { setFlag } from "./flags";
 
-export type Tab = "home" | "friends" | "servers" | "voice";
-export const TABS: Tab[] = ["home", "friends", "servers", "voice"];
-const TAB_NAMES: Record<Tab, string> = { home: "Home", friends: "Friends", servers: "Servers", voice: "Voice" };
+export type Tab = "profile" | "home" | "friends" | "servers" | "voice";
+// Home stays the default; the profile pill sits to its left
+export const TABS: Tab[] = ["profile", "home", "friends", "servers", "voice"];
+const TAB_NAMES: Record<Tab, string> = { profile: "You", home: "Home", friends: "Friends", servers: "Servers", voice: "Voice" };
 
 interface Item {
     id: string;
@@ -331,31 +332,49 @@ function homeView(): Section[] {
     const online = A.friends().filter(f => f.status !== "offline").slice(0, 12).map(friendItem);
     out.push({ title: "Friends online", layout: "shelf", items: online, empty: "No friends online" });
 
-    out.push({
-        title: "More",
-        layout: "shelf",
-        items: [
-            {
-                id: "m-status", label: "Status", sub: A.statusLabel(A.myStatus()), initials: A.statusIcon(A.myStatus()),
-                onA: () => askChoice("Set your status", "", A.STATUSES.map(st => ({
-                    label: `${A.statusIcon(st)}  ${A.statusLabel(st)}`,
-                    current: st === A.myStatus(),
-                    onPick: () => { A.setStatus(st); toast(`Status: ${A.statusLabel(st)}`); },
-                }))),
-            },
-            {
-                id: "m-font", label: "Font", sub: lookRef.fontLabel(), initials: "Aa",
+    return out;
+}
+
+/* Profile tab: your status, look, and system actions (replaces Home's old "More" shelf). */
+function profileView(): Section[] {
+    const cur = A.myStatus();
+    const me = A.me();
+    return [
+        {
+            title: "Status",
+            layout: "small",
+            items: A.STATUSES.map(st => ({
+                id: `st-${st}`,
+                label: A.statusLabel(st),
+                sub: st === cur ? "Current" : undefined,
+                initials: A.statusIcon(st),
+                badge: st === cur ? "✓" : undefined,
+                tone: st === cur ? "ok" as const : undefined,
+                onA: () => { A.setStatus(st); toast(`Status: ${A.statusLabel(st)}`); },
+            })),
+        },
+        {
+            title: "Appearance",
+            layout: "small",
+            items: [{
+                id: "p-font", label: "Font", sub: lookRef.fontLabel(), initials: "Aa",
                 onA: () => askChoice("Font", "Used in this menu and across Discord", lookRef.fonts().map(f => ({
                     label: f.label,
                     current: f.id === lookRef.font(),
                     onPick: () => lookRef.setFont(f.id),
                 }))),
-            },
-            { id: "m-classic", label: "Full Discord", sub: "Everything else · R3", initials: "🖥", onA: () => onClassic?.() },
-            { id: "m-settings", label: "Discord settings", sub: "Opens Discord's settings", initials: "⚙", onA: () => { onClassic?.(); setTimeout(() => SettingsRouter.openUserSettings(), 100); } },
-        ],
-    });
-    return out;
+            }],
+        },
+        {
+            title: "System",
+            layout: "small",
+            items: [
+                { id: "p-classic", label: "Full Discord", sub: "Sidebars and everything else · R3", initials: "🖥", onA: () => onClassic?.() },
+                { id: "p-settings", label: "Discord settings", sub: me ? `Signed in as ${A.displayName(me)}` : "Opens Discord's settings", initials: "⚙", onA: () => { onClassic?.(); setTimeout(() => SettingsRouter.openUserSettings(), 100); } },
+                { id: "p-quit", label: "Quit Discord", sub: "Closes Discord completely", initials: "⏻", tone: "danger", onA: () => quitFn && askConfirm("Quit Discord?", "This closes Discord completely.", quitFn) },
+            ],
+        },
+    ];
 }
 
 function friendsView(): Section[] {
@@ -492,7 +511,7 @@ const esc = (s: string) => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(
 
 export function render() {
     if (!root || !open) return;
-    const sections = tab === "home" ? homeView() : tab === "friends" ? friendsView() : tab === "servers" ? serversView() : voiceView();
+    const sections = tab === "profile" ? profileView() : tab === "home" ? homeView() : tab === "friends" ? friendsView() : tab === "servers" ? serversView() : voiceView();
     items = sections.flatMap(s => s.items);
     const key = viewKey();
     if (!items.some(i => i.id === selected[key])) selected[key] = items[0]?.id;
@@ -504,7 +523,9 @@ export function render() {
     // Big Picture layout: bumper glyphs pinned to the screen edges, pills centred
     const tabsHtml = `<kbd class="vc-gpn-bumper" data-bumper="lb">LB</kbd><div class="vc-gpn-brand">Discord</div>`
         + `<div class="vc-gpn-pills">`
-        + TABS.map(t => `<span data-tab="${t}" class="${t === tab ? "on" : ""}">${TAB_NAMES[t]}</span>`).join("")
+        + TABS.map(t => `<span data-tab="${t}" class="${t === tab ? "on" : ""}">`
+            + (t === "profile" ? `<i class="vc-gpn-dot s-${esc(A.myStatus())}"></i>${esc(A.me() ? A.displayName(A.me()) : TAB_NAMES[t])}` : TAB_NAMES[t])
+            + "</span>").join("")
         + `</div>`
         + `<div class="vc-gpn-status">${vc ? `<b class="ok">● ${esc(vc.name || "Call")}</b>` : ""}${live ? '<b class="live">LIVE</b>' : ""}${A.isSelfMute() ? "<span>🔇</span>" : ""}<span>${clock}</span></div>`
         + `<kbd class="vc-gpn-bumper" data-bumper="rb">RB</kbd>`;

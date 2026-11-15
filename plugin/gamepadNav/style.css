@@ -573,3 +573,19 @@ body.vc-gpn-kb .vc-gpn-shell {
     top: 50%;
     transform: translateY(-50%);
 }
+
+/* status dot in the profile pill */
+.vc-gpn-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-right: 8px;
+    border-radius: 50%;
+    vertical-align: middle;
+    background: #80848e;
+}
+
+.vc-gpn-dot.s-online { background: #23a55a; }
+.vc-gpn-dot.s-idle { background: #f0b232; }
+.vc-gpn-dot.s-dnd { background: #f23f43; }
+.vc-gpn-dot.s-invisible { background: transparent; box-shadow: inset 0 0 0 2px #80848e; }
