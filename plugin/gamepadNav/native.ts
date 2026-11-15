@@ -63,7 +63,7 @@ public static class GpnTip {
     }
 }
 '@
-$in = [Console]::In
+$in = New-Object System.IO.StreamReader([Console]::OpenStandardInput())  # real async reads; Console.In blocks
 $task = $in.ReadLineAsync()
 $last = -1
 while ($true) {
