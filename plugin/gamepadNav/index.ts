@@ -16,7 +16,7 @@ import definePlugin, { OptionType, PluginNative } from "@utils/types";
 
 import * as A from "./actions";
 import couchStyle from "./couch.css?managed";
-import { startKeyboardWatch, stopKeyboardWatch } from "./keyboard";
+import { isKeyboardUp, startKeyboardWatch, stopKeyboardWatch } from "./keyboard";
 import * as N from "./nav";
 import * as S from "./shell";
 import style from "./style.css?managed";
@@ -209,6 +209,7 @@ function onPress(b: Btn) {
         if (b === "START" && box) return N.key("Enter", box);
         if (b === "B") {
             typing = false;
+            if (isKeyboardUp()) Native?.toggleTouchKeyboard?.(); // put the keyboard away too
             box?.blur();
             N.setRingHidden(false);
             return;
@@ -260,7 +261,9 @@ function startTyping(el?: HTMLElement) {
     N.focusEl(box);
     box.focus();
     typing = true;
-    S.toast("Typing: Steam + X for keyboard · Start sends · B done");
+    // bring up the Windows touch keyboard (focus alone only does that for a tap)
+    setTimeout(() => { if (!isKeyboardUp()) Native?.toggleTouchKeyboard?.(); }, 120);
+    S.toast("Typing · Start sends · B done");
 }
 
 function quitDiscord() {
@@ -369,6 +372,7 @@ export default definePlugin({
     start() {
         if (settings.store.fullscreen) Native?.setFullscreen?.(true);
         startKeyboardWatch();
+        Native?.warmTouchKeyboard?.();
         A.loadRecentVoice().then(() => A.recordVoiceJoin(A.currentVoiceChannelId()));
         S.settingsRef.autoConfirmGoLive = settings.store.autoConfirmGoLive;
         S.settingsRef.volumeStep = settings.store.volumeStep;
@@ -389,6 +393,7 @@ export default definePlugin({
 
     stop() {
         stopKeyboardWatch();
+        Native?.stopTouchKeyboard?.();
         clearInterval(timer);
         window.removeEventListener("gamepadconnected", onConnect);
         window.removeEventListener("mousemove", onMouse);
