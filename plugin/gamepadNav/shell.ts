@@ -48,6 +48,10 @@ interface Section {
     empty?: string;
 }
 
+export interface MenuSetting { key: string; label: string; value: string; on?: boolean; toggle?(): void; dec?(): void; inc?(): void; }
+let settingsSource: () => MenuSetting[] = () => [];
+export const setSettingsSource = (fn: () => MenuSetting[]) => { settingsSource = fn; };
+
 export const settingsRef = { autoConfirmGoLive: true, volumeStep: 10 };
 
 // font choice lives in index.ts (plugin settings); the menu just reads/sets it
@@ -366,6 +370,20 @@ function profileView(): Section[] {
             }],
         },
         {
+            title: "Settings  ·  A toggle · ◀ ▶ change",
+            layout: "list",
+            items: settingsSource().map(st => ({
+                id: `set-${st.key}`,
+                label: st.label,
+                badge: st.dec ? `◀ ${st.value} ▶` : st.value,
+                tone: st.toggle ? (st.on ? "ok" as const : undefined) : undefined,
+                initials: st.toggle ? (st.on ? "✓" : "–") : "↔",
+                onA: st.toggle ?? st.inc,
+                onLeft: st.dec ?? st.toggle,
+                onRight: st.inc ?? st.toggle,
+            })),
+        },
+        {
             title: "System",
             layout: "small",
             items: [
@@ -543,11 +561,11 @@ export function render() {
     if (header.innerHTML !== tabsHtml) header.innerHTML = tabsHtml;
     const cur = items.find(i => i.id === sel);
     const hints = [
-        cur?.onLeft ? glyph("dpad", "◀ ▶", "Volume") : "",
+        cur?.onLeft ? glyph("dpad", "◀ ▶", cur.id.startsWith("u-") ? "Volume" : "Change") : "",
         cur?.onX ? glyph("x", "X", "Reset") : "",
         cur?.onY ? glyph("y", "Y", cur.yLabel ?? "Call") : "",
         glyph("view", "⧉", "Help"),
-        cur?.onA ? glyph("a", "A", cur.onLeft ? "Mute" : "Select") : "",
+        cur?.onA ? glyph("a", "A", cur.id.startsWith("u-") ? "Mute" : cur.id.startsWith("set-") ? "Change" : "Select") : "",
         glyph("b", "B", tab === "servers" && drillGuild ? "Back" : tab === "home" ? "Quit" : "Home"),
     ].join("");
     if (footer.innerHTML !== hints) footer.innerHTML = hints;

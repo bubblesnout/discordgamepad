@@ -133,8 +133,42 @@ function setClassic(on: boolean) {
         S.toast("Full Discord · R3 or LB / RB to go back");
         setTimeout(() => N.focusFirstIn('[data-list-id="guildsnav"]') || N.move("down"), 300);
     } else {
-        S.toast("10-foot mode");
+        S.show(); // straight back to the menu, not whatever Discord page was open
     }
+}
+
+/* Plugin settings shown on the profile tab, so they can be changed with the controller. */
+const pct = (v: number) => `${Math.round(v * 100)}%`;
+const SCALE = [0.75, 0.85, 1, 1.15, 1.25, 1.5];
+const MENU_SETTINGS: { key: keyof typeof settings.store; label: string; steps?: number[]; fmt?(v: number): string; }[] = [
+    { key: "tenFoot", label: "10-foot chat (hide sidebars)" },
+    { key: "openOnStart", label: "Open this menu when Discord starts" },
+    { key: "fullscreen", label: "Fullscreen" },
+    { key: "couchTheme", label: "Couch theme" },
+    { key: "autoConfirmGoLive", label: "Confirm Go Live automatically" },
+    { key: "tileColumns", label: "Tiles per row", steps: [4, 5, 6, 7, 8, 9] },
+    { key: "rowScale", label: "Row and icon size", steps: SCALE, fmt: pct },
+    { key: "textScale", label: "Menu text size", steps: SCALE, fmt: pct },
+    { key: "chatTextScale", label: "Chat text size", steps: SCALE, fmt: pct },
+    { key: "volumeStep", label: "Volume step", steps: [5, 10, 20], fmt: v => `${v}%` },
+    { key: "stickDeadzone", label: "Stick deadzone", steps: [0.2, 0.3, 0.4, 0.5, 0.6], fmt: pct },
+];
+
+function setSetting(key: string, v: any) {
+    (settings.store as any)[key] = v;
+    // onChange normally runs from the settings UI; call it ourselves here
+    (settings.def as any)[key]?.onChange?.(v);
+}
+
+function menuSettings(): S.MenuSetting[] {
+    return MENU_SETTINGS.map(d => {
+        const v = (settings.store as any)[d.key];
+        if (!d.steps) return { key: d.key, label: d.label, value: v ? "On" : "Off", on: !!v, toggle: () => setSetting(d.key, !v) };
+        // nearest step to the current value, then move one step
+        const i = d.steps.reduce((bi, x, j) => Math.abs(x - v) < Math.abs(d.steps![bi] - v) ? j : bi, 0);
+        const step = (dir: number) => setSetting(d.key, d.steps![Math.max(0, Math.min(d.steps!.length - 1, i + dir))]);
+        return { key: d.key, label: d.label, value: d.fmt ? d.fmt(v) : String(v), dec: () => step(-1), inc: () => step(1) };
+    });
 }
 
 /** Push the scale settings into CSS variables the menu styles use. */
@@ -237,7 +271,7 @@ function onPress(b: Btn) {
 
     if (b === "LB" || b === "RB") {
         typing = false;
-        if (classic) setClassic(false);
+        if (classic) return setClassic(false); // reopens the menu
         if (S.isOpen()) S.cycleTab(b === "RB" ? 1 : -1);
         else S.show();
         return;
@@ -444,6 +478,7 @@ export default definePlugin({
         S.setOnClassic(() => setClassic(true));
         S.setOnQuit(quitDiscord);
         applyLook();
+        S.setSettingsSource(menuSettings);
         Object.assign(S.lookRef, {
             font: () => settings.store.font,
             fontLabel: () => fontLabel(settings.store.font),
