@@ -719,8 +719,13 @@ function moveSpatial(dir: Dir) {
         const vertical = dir === "up" || dir === "down";
         const main = vertical ? (dir === "up" ? -dy : dy) : (dir === "left" ? -dx : dx);
         if (main <= 4) continue;
-        const cross = Math.abs(vertical ? dx : dy);
-        // prefer same row/column, then nearest
+        // Items that overlap on the cross axis are "in line" (e.g. a wide list row
+        // under a small tile): no cross penalty, so the nearest one wins.
+        // Otherwise prefer the same row/column, then nearest.
+        const overlap = vertical
+            ? Math.min(a.right, r.right) - Math.max(a.left, r.left)
+            : Math.min(a.bottom, r.bottom) - Math.max(a.top, r.top);
+        const cross = overlap > 0 ? 0 : Math.abs(vertical ? dx : dy);
         const score = main + cross * 3;
         if (score < bestScore) { bestScore = score; best = el; }
     }
