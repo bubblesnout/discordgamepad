@@ -73,6 +73,15 @@ channels to join or switch to.
 **Typing**: the Windows touch keyboard (or Steam + X with Steam Input on). Discord
 shrinks to sit above the touch keyboard while it's open.
 
+**Home › More**: set your status (online, idle, do not disturb, invisible) and pick a
+font, both from the controller. Fonts offered are readable Windows fonts that are
+installed, plus anything you drop into a `fonts/` folder in the repo (git-ignored, so
+licensed fonts like Motiva Sans never get committed). Files are named like
+`FamilyNameBold.ttf`; the family and weight come from the name.
+
+**Scale** (plugin settings): tiles per row, list row/icon size, menu text size and chat
+text size, each separately.
+
 **Fullscreen**: Discord goes true fullscreen (like F11) on start, so the handheld
 pull-out taskbar stays out of the way. Toggle in the plugin settings.
 
@@ -86,7 +95,8 @@ pull-out taskbar stays out of the way. Toggle in the plugin settings.
 - `actions.ts`: Discord internals (voice join/leave, `setLocalVolume`, DMs, calls,
   streams). Each lookup is guarded so a Discord update breaks one feature, not all.
 - `keyboard.ts`: touch keyboard handling (VirtualKeyboard API).
-- `native.ts`: Electron main-process helpers (quit, fullscreen).
+- `native.ts`: Electron main-process helpers (quit, fullscreen, touch keyboard, local fonts).
+- `fonts.ts`: font switcher. `flags.ts`: body classes that survive Discord rewriting them.
 - `couch.css`: optional theme (bigger text/targets, hides Nitro/shop/sticker clutter,
   10-foot mode layout). `style.css`: ring, menu, toasts.
 

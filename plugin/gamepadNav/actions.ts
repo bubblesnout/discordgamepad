@@ -5,6 +5,7 @@
  */
 
 import * as DataStore from "@api/DataStore";
+import { getUserSettingLazy } from "@api/UserSettings";
 import { Logger } from "@utils/Logger";
 import { findByProps } from "@webpack";
 import {
@@ -274,3 +275,22 @@ export async function watchStream(userId: string): Promise<string> {
     }
     return "Couldn't start the stream";
 }
+
+/* ---------- your status ---------- */
+
+export const STATUSES = ["online", "idle", "dnd", "invisible"] as const;
+export type Status = typeof STATUSES[number];
+
+const StatusSetting = getUserSettingLazy<string>("status", "status");
+
+export const myStatus = (): string => StatusSetting?.getSetting?.() ?? "online";
+
+export function setStatus(s: Status) {
+    StatusSetting?.updateSetting(s);
+}
+
+export const statusLabel = (s: string) =>
+    ({ online: "Online", idle: "Idle", dnd: "Do Not Disturb", invisible: "Invisible" } as Record<string, string>)[s] ?? s;
+
+export const statusIcon = (s: string) =>
+    ({ online: "🟢", idle: "🌙", dnd: "⛔", invisible: "⚪" } as Record<string, string>)[s] ?? "●";

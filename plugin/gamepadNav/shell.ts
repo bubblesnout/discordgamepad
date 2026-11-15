@@ -49,6 +49,14 @@ interface Section {
 
 export const settingsRef = { autoConfirmGoLive: true, volumeStep: 10 };
 
+// font choice lives in index.ts (plugin settings); the menu just reads/sets it
+export const lookRef = {
+    font: () => "default",
+    fontLabel: () => "Discord default",
+    fonts: (): { id: string; label: string; }[] => [],
+    setFont: (_id: string) => { },
+};
+
 let root: HTMLDivElement | null = null;
 let header: HTMLDivElement;
 let footer: HTMLDivElement;
@@ -147,15 +155,24 @@ export function toast(text: string) {
     toastTimer = setTimeout(() => t!.style.opacity = "0", 2200);
 }
 
-/* ---------- confirm dialog (Big Picture style) ---------- */
+/* ---------- dialogs (Big Picture style): yes/no and pick-one ---------- */
 
-let confirm: { title: string; body: string; sel: 0 | 1; onYes(): void; } | null = null;
+interface Choice { label: string; sub?: string; current?: boolean; onPick?(): void; }
+
+// `confirm` is any open dialog: two buttons in a row (yes/no) or a vertical list.
+let confirm: { title: string; body: string; choices: Choice[]; sel: number; row: boolean; } | null = null;
 let confirmEl: HTMLDivElement | null = null;
 
 export const isConfirmOpen = () => !!confirm;
 
 export function askConfirm(title: string, body: string, onYes: () => void) {
-    confirm = { title, body, sel: 0, onYes };
+    confirm = { title, body, choices: [{ label: "Yes", onPick: onYes }, { label: "No" }], sel: 0, row: true };
+    drawConfirm();
+}
+
+/** A vertical list to pick one option from; starts on the current one. */
+export function askChoice(title: string, body: string, choices: Choice[]) {
+    confirm = { title, body, choices, sel: Math.max(0, choices.findIndex(c => c.current)), row: false };
     drawConfirm();
 }
 
@@ -173,25 +190,36 @@ function drawConfirm() {
         confirmEl.addEventListener("click", e => {
             const b = (e.target as HTMLElement).closest<HTMLElement>("[data-choice]");
             if (!b || !confirm) return;
-            confirm.sel = b.dataset.choice === "yes" ? 0 : 1;
+            confirm.sel = +b.dataset.choice!;
             confirmHandle("a");
         });
         root.appendChild(confirmEl);
     }
-    confirmEl.innerHTML = `<div class="vc-gpn-confirm-box"><h2>${esc(confirm.title)}</h2><p>${esc(confirm.body)}</p>`
-        + `<div class="vc-gpn-confirm-btns"><span data-choice="yes" class="${confirm.sel === 0 ? "on" : ""}">Yes</span>`
-        + `<span data-choice="no" class="${confirm.sel === 1 ? "on" : ""}">No</span></div></div>`;
+    const c = confirm;
+    const btns = c.choices.map((ch, i) =>
+        `<span data-choice="${i}" class="${i === c.sel ? "on" : ""}">${esc(ch.label)}`
+        + (ch.sub ? `<small>${esc(ch.sub)}</small>` : "")
+        + (ch.current ? "<b>✓</b>" : "")
+        + "</span>").join("");
+    confirmEl.innerHTML = `<div class="vc-gpn-confirm-box"><h2>${esc(c.title)}</h2>`
+        + (c.body ? `<p>${esc(c.body)}</p>` : "")
+        + `<div class="vc-gpn-confirm-btns${c.row ? "" : " vc-gpn-choice-list"}">${btns}</div></div>`;
+    confirmEl.querySelector(".on")?.scrollIntoView({ block: "nearest" });
 }
 
 function confirmHandle(btn: Dir | "a" | "x" | "y") {
     if (!confirm) return;
-    if (btn === "left" || btn === "right" || btn === "up" || btn === "down") {
-        confirm.sel = confirm.sel ? 0 : 1;
+    const n = confirm.choices.length;
+    const prev = confirm.row ? "left" : "up", next = confirm.row ? "right" : "down";
+    if (btn === prev || btn === next) {
+        confirm.sel = (confirm.sel + (btn === next ? 1 : -1) + n) % n;
         drawConfirm();
     } else if (btn === "a") {
-        const yes = confirm.sel === 0 ? confirm.onYes : null;
+        const pick = confirm.choices[confirm.sel]?.onPick;
         closeConfirm();
-        yes?.();
+        pick?.();
+        lastHtml = "";
+        render();
     }
 }
 
@@ -307,6 +335,22 @@ function homeView(): Section[] {
         title: "More",
         layout: "shelf",
         items: [
+            {
+                id: "m-status", label: "Status", sub: A.statusLabel(A.myStatus()), initials: A.statusIcon(A.myStatus()),
+                onA: () => askChoice("Set your status", "", A.STATUSES.map(st => ({
+                    label: `${A.statusIcon(st)}  ${A.statusLabel(st)}`,
+                    current: st === A.myStatus(),
+                    onPick: () => { A.setStatus(st); toast(`Status: ${A.statusLabel(st)}`); },
+                }))),
+            },
+            {
+                id: "m-font", label: "Font", sub: lookRef.fontLabel(), initials: "Aa",
+                onA: () => askChoice("Font", "Used in this menu and across Discord", lookRef.fonts().map(f => ({
+                    label: f.label,
+                    current: f.id === lookRef.font(),
+                    onPick: () => lookRef.setFont(f.id),
+                }))),
+            },
             { id: "m-classic", label: "Full Discord", sub: "Everything else · R3", initials: "🖥", onA: () => onClassic?.() },
             { id: "m-settings", label: "Discord settings", sub: "Opens Discord's settings", initials: "⚙", onA: () => { onClassic?.(); setTimeout(() => SettingsRouter.openUserSettings(), 100); } },
         ],

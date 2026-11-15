@@ -493,3 +493,70 @@ body.vc-gpn-kb #app-mount {
 body.vc-gpn-kb .vc-gpn-shell {
     bottom: var(--gpn-kb, 0px);
 }
+
+/* ---------- scale settings (variables set from plugin settings) ---------- */
+
+/* tiles per row */
+.vc-gpn-shelf .vc-gpn-it,
+.vc-gpn-tiles .vc-gpn-it {
+    flex-basis: calc((100% - (var(--gpn-cols, 6) - 1) * var(--gpn-gap, 16px)) / var(--gpn-cols, 6));
+}
+
+.vc-gpn-tiles {
+    grid-template-columns: repeat(var(--gpn-cols, 6), minmax(0, 1fr));
+}
+
+.vc-gpn-tiles .vc-gpn-it { flex-basis: auto; }
+
+/* list rows and small tiles: art size + padding */
+.vc-gpn-list .vc-gpn-it img,
+.vc-gpn-list .vc-gpn-ini,
+.vc-gpn-small .vc-gpn-it img,
+.vc-gpn-small .vc-gpn-ini {
+    zoom: var(--gpn-row, 1);
+}
+
+.vc-gpn-list .vc-gpn-it,
+.vc-gpn-small .vc-gpn-it {
+    padding-top: calc(10px * var(--gpn-row, 1));
+    padding-bottom: calc(10px * var(--gpn-row, 1));
+    min-height: calc(60px * var(--gpn-row, 1));
+}
+
+/* text */
+.vc-gpn-txt,
+.vc-gpn-badge,
+.vc-gpn-scroll h3,
+.vc-gpn-empty,
+.vc-gpn-tabs,
+.vc-gpn-footer {
+    zoom: var(--gpn-text, 1);
+}
+
+/* ---------- pick-one dialog (status, font) ---------- */
+
+.vc-gpn-choice-list {
+    flex-direction: column;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.vc-gpn-choice-list span {
+    position: relative;
+    text-align: left;
+    padding: 12px 18px;
+}
+
+.vc-gpn-choice-list small {
+    display: block;
+    font-size: 14px;
+    font-weight: 400;
+    opacity: 0.7;
+}
+
+.vc-gpn-choice-list b {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+}

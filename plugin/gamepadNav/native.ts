@@ -129,3 +129,38 @@ export function stopTouchKeyboard() {
     tip?.kill();
     tip = null;
 }
+
+/* ---------- local fonts ---------- */
+
+const WEIGHTS: [RegExp, number][] = [
+    [/thin|hairline/i, 100], [/extralight|ultralight/i, 200], [/light/i, 300],
+    [/extrabold|ultrabold/i, 800], [/semibold|demibold/i, 600], [/bold/i, 700],
+    [/medium/i, 500], [/black|heavy/i, 900],
+];
+
+/**
+ * Fonts dropped into the repo's (git-ignored) fonts/ folder, e.g. Motiva Sans.
+ * File names like "MotivaSansBold.woff.ttf" become family "Motiva Sans", weight 700.
+ * The built main-process bundle lives in <repo>/vencord/dist.
+ */
+export function listLocalFonts(): { family: string; weight: number; data: Uint8Array; }[] {
+    /* eslint-disable @typescript-eslint/no-require-imports */
+    const fs = require("fs") as typeof import("fs");
+    const path = require("path") as typeof import("path");
+    /* eslint-enable */
+    const dir = path.resolve(__dirname, "..", "..", "fonts");
+    if (!fs.existsSync(dir)) return [];
+    const out: { family: string; weight: number; data: Uint8Array; }[] = [];
+    for (const file of fs.readdirSync(dir)) {
+        if (!/\.(ttf|otf|woff2?)$/i.test(file)) continue;
+        const base = file.replace(/(\.woff2?|\.ttf|\.otf)+$/i, "");
+        const wm = WEIGHTS.find(([re]) => re.test(base));
+        const weight = wm?.[1] ?? 400;
+        const familyRaw = base.replace(/[-_ ]?(thin|hairline|extralight|ultralight|light|regular|book|normal|medium|semibold|demibold|bold|extrabold|ultrabold|black|heavy)$/i, "");
+        const family = familyRaw.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[-_]+/g, " ").trim();
+        try {
+            out.push({ family, weight, data: new Uint8Array(fs.readFileSync(path.join(dir, file))) });
+        } catch { /* unreadable file: skip */ }
+    }
+    return out;
+}

@@ -21,6 +21,7 @@ import * as N from "./nav";
 import * as S from "./shell";
 import style from "./style.css?managed";
 import { clearFlags, setFlag } from "./flags";
+import { applyFont, availableFonts, fontLabel, loadLocalFonts } from "./fonts";
 
 const settings = definePluginSettings({
     tenFoot: {
@@ -60,6 +61,44 @@ const settings = definePluginSettings({
         stickToMarkers: true,
         onChange: (v: number) => { S.settingsRef.volumeStep = v; },
     },
+    tileColumns: {
+        type: OptionType.SLIDER,
+        description: "Menu: tiles per row (fewer = bigger tiles)",
+        markers: [4, 5, 6, 7, 8, 9],
+        default: 6,
+        stickToMarkers: true,
+        onChange: () => applyLook(),
+    },
+    rowScale: {
+        type: OptionType.SLIDER,
+        description: "Menu: size of list rows and small tiles (avatars, icons)",
+        markers: [0.75, 1, 1.25, 1.5],
+        default: 1,
+        stickToMarkers: false,
+        onChange: () => applyLook(),
+    },
+    textScale: {
+        type: OptionType.SLIDER,
+        description: "Menu: text size (labels, headings, top bar, hints)",
+        markers: [0.75, 1, 1.25, 1.5],
+        default: 1,
+        stickToMarkers: false,
+        onChange: () => applyLook(),
+    },
+    chatTextScale: {
+        type: OptionType.SLIDER,
+        description: "Chat message text size (10-foot mode)",
+        markers: [0.75, 1, 1.25, 1.5],
+        default: 1,
+        stickToMarkers: false,
+        onChange: () => applyLook(),
+    },
+    font: {
+        type: OptionType.STRING,
+        description: "Font (pick it from the menu: Home › More › Font)",
+        default: "default",
+        hidden: true,
+    },
     stickDeadzone: {
         type: OptionType.SLIDER,
         description: "Stick deadzone",
@@ -96,6 +135,23 @@ function setClassic(on: boolean) {
     } else {
         S.toast("10-foot mode");
     }
+}
+
+/** Push the scale settings into CSS variables the menu styles use. */
+function applyLook() {
+    const s = settings.store;
+    let st = document.getElementById("vc-gpn-look");
+    if (!st) {
+        st = document.createElement("style");
+        st.id = "vc-gpn-look";
+        document.head.appendChild(st);
+    }
+    st.textContent = `:root {
+    --gpn-cols: ${s.tileColumns};
+    --gpn-row: ${s.rowScale};
+    --gpn-text: ${s.textScale};
+    --gpn-chat: ${s.chatTextScale};
+}`;
 }
 
 // Electron main-process helpers (see native.ts): quit, fullscreen
@@ -387,6 +443,15 @@ export default definePlugin({
         S.setOnEnterChat(focusChat);
         S.setOnClassic(() => setClassic(true));
         S.setOnQuit(quitDiscord);
+        applyLook();
+        Object.assign(S.lookRef, {
+            font: () => settings.store.font,
+            fontLabel: () => fontLabel(settings.store.font),
+            fonts: availableFonts,
+            setFont: (id: string) => { settings.store.font = id; applyFont(id); },
+        });
+        applyFont(settings.store.font);
+        loadLocalFonts().then(() => applyFont(settings.store.font));
         setFlag("vc-gpn-10ft", settings.store.tenFoot);
         // open straight away (no delay), so Discord's own Friends page never flashes up
         if (settings.store.openOnStart) S.show("home");
@@ -410,6 +475,8 @@ export default definePlugin({
         N.unmountRing();
         S.destroy();
         clearFlags();
+        document.getElementById("vc-gpn-look")?.remove();
+        document.getElementById("vc-gpn-font")?.remove();
         helpEl?.remove();
         helpEl = null;
         held = {};
