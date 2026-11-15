@@ -48,7 +48,7 @@ Picture.
 | B | Back. In chat: open the menu. On a tab: go Home. On Home: quit Discord? |
 | X | Context menu (right click) |
 | Y | In a DM: start a call. In voice: mute/unmute |
-| LB / RB | Open the menu / switch tabs: You · Home · Friends · Servers · Voice |
+| LB / RB | Open the menu / switch tabs: You · Home · Friends · Servers · Voice · Settings |
 | Start | Jump to the chat box / send message |
 | Right stick, LT / RT | Scroll, page up / page down |
 | R3 (click right stick) | Full Discord UI (sidebars, settings) and back |
@@ -74,8 +74,10 @@ channels to join or switch to.
 shrinks to sit above the touch keyboard while it's open.
 
 **Profile tab** (the pill left of Home, with your status dot and name): set your status
-(online, idle, do not disturb, invisible), pick a font, open Full Discord or Discord's
-settings, or quit. Fonts offered are readable Windows fonts that are
+(online, idle, do not disturb, invisible), open Full Discord or Discord's settings, or quit.
+
+**Settings tab** (far right): font and every plugin setting (sizes, spacing, toggles),
+changeable with the controller. Fonts offered are readable Windows fonts that are
 installed, plus anything you drop into a `fonts/` folder in the repo (git-ignored, so
 licensed fonts like Motiva Sans never get committed). Files are named like
 `FamilyNameBold.ttf`; the family and weight come from the name.

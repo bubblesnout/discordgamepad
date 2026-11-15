@@ -20,10 +20,10 @@ import * as A from "./actions";
 import type { Dir } from "./nav";
 import { setFlag } from "./flags";
 
-export type Tab = "profile" | "home" | "friends" | "servers" | "voice";
+export type Tab = "profile" | "home" | "friends" | "servers" | "voice" | "settings";
 // Home stays the default; the profile pill sits to its left
-export const TABS: Tab[] = ["profile", "home", "friends", "servers", "voice"];
-const TAB_NAMES: Record<Tab, string> = { profile: "You", home: "Home", friends: "Friends", servers: "Servers", voice: "Voice" };
+export const TABS: Tab[] = ["profile", "home", "friends", "servers", "voice", "settings"];
+const TAB_NAMES: Record<Tab, string> = { profile: "You", home: "Home", friends: "Friends", servers: "Servers", voice: "Voice", settings: "Settings" };
 
 interface Item {
     id: string;
@@ -339,7 +339,7 @@ function homeView(): Section[] {
     return out;
 }
 
-/* Profile tab: your status, look, and system actions (replaces Home's old "More" shelf). */
+/* Profile tab: your status and system actions (kept short so Quit is on screen). */
 function profileView(): Section[] {
     const cur = A.myStatus();
     const me = A.me();
@@ -357,6 +357,21 @@ function profileView(): Section[] {
                 onA: () => { A.setStatus(st); toast(`Status: ${A.statusLabel(st)}`); },
             })),
         },
+        {
+            title: "System",
+            layout: "small",
+            items: [
+                { id: "p-classic", label: "Full Discord", sub: "Sidebars and everything else · R3", initials: "🖥", onA: () => onClassic?.() },
+                { id: "p-settings", label: "Discord settings", sub: me ? `Signed in as ${A.displayName(me)}` : "Opens Discord's settings", initials: "⚙", onA: () => { onClassic?.(); setTimeout(() => SettingsRouter.openUserSettings(), 100); } },
+                { id: "p-quit", label: "Quit Discord", sub: "Closes Discord completely", initials: "⏻", tone: "danger", onA: () => quitFn && askConfirm("Quit Discord?", "This closes Discord completely.", quitFn) },
+            ],
+        },
+    ];
+}
+
+/* Settings tab (far right): font and every plugin setting. */
+function settingsView(): Section[] {
+    return [
         {
             title: "Appearance",
             layout: "small",
@@ -382,15 +397,6 @@ function profileView(): Section[] {
                 onLeft: st.dec ?? st.toggle,
                 onRight: st.inc ?? st.toggle,
             })),
-        },
-        {
-            title: "System",
-            layout: "small",
-            items: [
-                { id: "p-classic", label: "Full Discord", sub: "Sidebars and everything else · R3", initials: "🖥", onA: () => onClassic?.() },
-                { id: "p-settings", label: "Discord settings", sub: me ? `Signed in as ${A.displayName(me)}` : "Opens Discord's settings", initials: "⚙", onA: () => { onClassic?.(); setTimeout(() => SettingsRouter.openUserSettings(), 100); } },
-                { id: "p-quit", label: "Quit Discord", sub: "Closes Discord completely", initials: "⏻", tone: "danger", onA: () => quitFn && askConfirm("Quit Discord?", "This closes Discord completely.", quitFn) },
-            ],
         },
     ];
 }
@@ -529,7 +535,7 @@ const esc = (s: string) => String(s).replace(/[&<>"']/g, c => `&#${c.charCodeAt(
 
 export function render() {
     if (!root || !open) return;
-    const sections = tab === "profile" ? profileView() : tab === "home" ? homeView() : tab === "friends" ? friendsView() : tab === "servers" ? serversView() : voiceView();
+    const sections = tab === "settings" ? settingsView() : tab === "profile" ? profileView() : tab === "home" ? homeView() : tab === "friends" ? friendsView() : tab === "servers" ? serversView() : voiceView();
     items = sections.flatMap(s => s.items);
     const key = viewKey();
     if (!items.some(i => i.id === selected[key])) selected[key] = items[0]?.id;
