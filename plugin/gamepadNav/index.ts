@@ -20,13 +20,14 @@ import { isKeyboardUp, startKeyboardWatch, stopKeyboardWatch } from "./keyboard"
 import * as N from "./nav";
 import * as S from "./shell";
 import style from "./style.css?managed";
+import { clearFlags, setFlag } from "./flags";
 
 const settings = definePluginSettings({
     tenFoot: {
         type: OptionType.BOOLEAN,
         description: "10-foot mode: full-screen chat with no sidebars (use the menu with B / LB / RB instead)",
         default: true,
-        onChange: (v: boolean) => document.body.classList.toggle("vc-gpn-10ft", v),
+        onChange: (v: boolean) => setFlag("vc-gpn-10ft", v),
     },
     fullscreen: {
         type: OptionType.BOOLEAN,
@@ -87,7 +88,7 @@ let classic = false; // temporarily showing Discord's full UI
 /** Full Discord UI (sidebars back, menu closed), still driven by the focus ring. */
 function setClassic(on: boolean) {
     classic = on;
-    document.body.classList.toggle("vc-gpn-10ft", settings.store.tenFoot && !on);
+    setFlag("vc-gpn-10ft", settings.store.tenFoot && !on);
     if (on) {
         S.hide();
         S.toast("Full Discord · R3 or LB / RB to go back");
@@ -379,7 +380,7 @@ export default definePlugin({
         S.setOnEnterChat(focusChat);
         S.setOnClassic(() => setClassic(true));
         S.setOnQuit(quitDiscord);
-        document.body.classList.toggle("vc-gpn-10ft", settings.store.tenFoot);
+        setFlag("vc-gpn-10ft", settings.store.tenFoot);
         // open straight away (no delay), so Discord's own Friends page never flashes up
         if (settings.store.openOnStart) S.show("home");
         if (settings.store.couchTheme) enableStyle(couchStyle);
@@ -401,7 +402,7 @@ export default definePlugin({
         disableStyle(couchStyle);
         N.unmountRing();
         S.destroy();
-        document.body.classList.remove("vc-gpn-10ft", "vc-gpn-shell-open");
+        clearFlags();
         helpEl?.remove();
         helpEl = null;
         held = {};

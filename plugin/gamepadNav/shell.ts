@@ -18,6 +18,7 @@ import {
 
 import * as A from "./actions";
 import type { Dir } from "./nav";
+import { setFlag } from "./flags";
 
 export type Tab = "home" | "friends" | "servers" | "voice";
 export const TABS: Tab[] = ["home", "friends", "servers", "voice"];
@@ -95,7 +96,7 @@ export function show(t: Tab = tab, guildId: string | null = null) {
     tab = t;
     open = true;
     root!.style.display = "";
-    document.body.classList.add("vc-gpn-shell-open");
+    setFlag("vc-gpn-shell-open", true);
     lastHtml = "";
     render();
     clearInterval(timer);
@@ -106,7 +107,7 @@ export function hide() {
     open = false;
     clearInterval(timer);
     if (root) root.style.display = "none";
-    document.body.classList.remove("vc-gpn-shell-open");
+    setFlag("vc-gpn-shell-open", false);
 }
 
 export function destroy() {

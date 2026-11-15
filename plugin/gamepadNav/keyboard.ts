@@ -10,6 +10,7 @@
  */
 
 import type { PluginNative } from "@utils/types";
+import { setFlag } from "./flags";
 
 const Native = VencordNative.pluginHelpers.GamepadNav as PluginNative<typeof import("./native")>;
 
@@ -24,8 +25,15 @@ function apply(h: number) {
     if (h < 60) h = 0;
     if (h === kbHeight) return;
     kbHeight = h;
-    document.documentElement.style.setProperty("--gpn-kb", `${h}px`);
-    document.body.classList.toggle("vc-gpn-kb", h > 0);
+    // own <style> rather than html's style attribute, which Discord also rewrites
+    let st = document.getElementById("vc-gpn-kb-var");
+    if (!st) {
+        st = document.createElement("style");
+        st.id = "vc-gpn-kb-var";
+        document.head.appendChild(st);
+    }
+    st.textContent = `:root { --gpn-kb: ${h}px; }`;
+    setFlag("vc-gpn-kb", h > 0);
     // keep the focused text box in view after the layout changes
     if (h) setTimeout(() => (document.activeElement as HTMLElement | null)?.scrollIntoView?.({ block: "nearest" }), 50);
 }
