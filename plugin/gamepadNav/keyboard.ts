@@ -1,26 +1,27 @@
 /*
  * GamepadNav: keep the message box visible above the Windows touch keyboard.
  *
- * Chromium reports the on-screen keyboard through the VirtualKeyboard API
- * (geometrychange) and/or by shrinking the visual viewport. We shrink
- * Discord's root by the keyboard height so the chat box sits right on top.
- *
- * Shrinking the page makes Chromium consider the text box no longer covered,
- * so it reports the keyboard as 0 again (it did this on every keypress).
- * So once a keyboard height is known it's latched while a text box keeps
- * focus, and only released when focus leaves the text box.
+ * Windows itself is the source of truth: native.ts asks it where the touch
+ * keyboard is (IFrameworkInputPane) and we poll that height here, then shrink
+ * Discord's root by it so the chat box sits right on top of the keyboard.
+ * Chromium's own keyboard signals (VirtualKeyboard API, visual viewport)
+ * flip-flopped as soon as the layout changed, so they're only used to stop
+ * Chromium scrolling the page by itself.
  */
 
-let kbHeight = 0;
-let cleanup: (() => void) | null = null;
+import type { PluginNative } from "@utils/types";
 
-const isTextInput = (el: Element | null) =>
-    !!el && el.matches('textarea, input:not([type=checkbox]):not([type=radio]):not([type=range]), [contenteditable="true"]');
+const Native = VencordNative.pluginHelpers.GamepadNav as PluginNative<typeof import("./native")>;
+
+let kbHeight = 0;
+let timer: any = null;
+let polling = false;
 
 export const isKeyboardUp = () => kbHeight > 0;
 
 function apply(h: number) {
     h = Math.max(0, Math.round(h));
+    if (h < 60) h = 0;
     if (h === kbHeight) return;
     kbHeight = h;
     document.documentElement.style.setProperty("--gpn-kb", `${h}px`);
@@ -29,51 +30,25 @@ function apply(h: number) {
     if (h) setTimeout(() => (document.activeElement as HTMLElement | null)?.scrollIntoView?.({ block: "nearest" }), 50);
 }
 
-/** A new height report. Grows/sets freely; "0" is ignored while typing. */
-function report(h: number) {
-    if (h >= 80) {
-        // only ever grow while latched (reports shrink as our own layout changes)
-        if (h > kbHeight || !kbHeight) apply(h);
-    } else if (!isTextInput(document.activeElement)) {
-        apply(0);
-    }
+function poll() {
+    if (polling || !Native?.getKeyboardHeight) return;
+    polling = true;
+    Native.getKeyboardHeight().then(px => {
+        polling = false;
+        // Windows reports physical pixels; CSS wants device-independent ones
+        apply(px / (window.devicePixelRatio || 1));
+    }, () => { polling = false; });
 }
 
 export function startKeyboardWatch() {
-    const vk = (navigator as any).virtualKeyboard;
-    const offs: (() => void)[] = [];
-
-    if (vk) {
-        try { vk.overlaysContent = true; } catch { /* not allowed here */ }
-        const onGeo = () => report(vk.boundingRect?.height ?? 0);
-        vk.addEventListener("geometrychange", onGeo);
-        offs.push(() => {
-            vk.removeEventListener("geometrychange", onGeo);
-            try { vk.overlaysContent = false; } catch { /* ignore */ }
-        });
-    }
-
-    const vv = window.visualViewport;
-    if (vv) {
-        const onVv = () => report(window.innerHeight - vv.height);
-        vv.addEventListener("resize", onVv);
-        offs.push(() => vv.removeEventListener("resize", onVv));
-    }
-
-    // release when the text box loses focus (keyboard is done)
-    const onFocusOut = () => setTimeout(() => {
-        if (!isTextInput(document.activeElement)) apply(0);
-    }, 150);
-    document.addEventListener("focusout", onFocusOut, true);
-    offs.push(() => document.removeEventListener("focusout", onFocusOut, true));
-
-    cleanup = () => {
-        offs.forEach(f => f());
-        apply(0);
-    };
+    // stop Chromium doing its own (conflicting) scroll-into-view for the keyboard
+    try { (navigator as any).virtualKeyboard.overlaysContent = true; } catch { /* unsupported */ }
+    timer = setInterval(poll, 120);
 }
 
 export function stopKeyboardWatch() {
-    cleanup?.();
-    cleanup = null;
+    clearInterval(timer);
+    timer = null;
+    try { (navigator as any).virtualKeyboard.overlaysContent = false; } catch { /* unsupported */ }
+    apply(0);
 }
