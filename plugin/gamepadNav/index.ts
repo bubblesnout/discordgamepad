@@ -85,6 +85,14 @@ const settings = definePluginSettings({
         stickToMarkers: false,
         onChange: () => applyLook(),
     },
+    spacing: {
+        type: OptionType.SLIDER,
+        description: "Menu: spacing between tiles, rows and sections",
+        markers: [0.75, 1, 1.25, 1.5, 1.75, 2],
+        default: 1.25,
+        stickToMarkers: true,
+        onChange: () => applyLook(),
+    },
     chatTextScale: {
         type: OptionType.SLIDER,
         description: "Chat message text size (10-foot mode)",
@@ -149,6 +157,7 @@ const MENU_SETTINGS: { key: keyof typeof settings.store; label: string; steps?: 
     { key: "tileColumns", label: "Tiles per row", steps: [4, 5, 6, 7, 8, 9] },
     { key: "rowScale", label: "Row and icon size", steps: SCALE, fmt: pct },
     { key: "textScale", label: "Menu text size", steps: SCALE, fmt: pct },
+    { key: "spacing", label: "Spacing", steps: [0.75, 1, 1.25, 1.5, 1.75, 2], fmt: pct },
     { key: "chatTextScale", label: "Chat text size", steps: SCALE, fmt: pct },
     { key: "volumeStep", label: "Volume step", steps: [5, 10, 20], fmt: v => `${v}%` },
     { key: "stickDeadzone", label: "Stick deadzone", steps: [0.2, 0.3, 0.4, 0.5, 0.6], fmt: pct },
@@ -185,6 +194,7 @@ function applyLook() {
     --gpn-row: ${s.rowScale};
     --gpn-text: ${s.textScale};
     --gpn-chat: ${s.chatTextScale};
+    --gpn-space: ${s.spacing};
 }`;
 }
 
