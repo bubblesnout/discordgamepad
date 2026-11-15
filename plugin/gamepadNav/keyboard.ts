@@ -20,11 +20,17 @@ let polling = false;
 
 export const isKeyboardUp = () => kbHeight > 0;
 
+let onClosed: (() => void) | null = null;
+/** Called when the keyboard goes away, however it was closed. */
+export const setOnKeyboardClosed = (fn: () => void) => { onClosed = fn; };
+
 function apply(h: number) {
     h = Math.max(0, Math.round(h));
     if (h < 60) h = 0;
     if (h === kbHeight) return;
+    const closed = kbHeight > 0 && h === 0;
     kbHeight = h;
+    if (closed) onClosed?.();
     // own <style> rather than html's style attribute, which Discord also rewrites
     let st = document.getElementById("vc-gpn-kb-var");
     if (!st) {

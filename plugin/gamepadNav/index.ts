@@ -16,7 +16,7 @@ import definePlugin, { OptionType, PluginNative } from "@utils/types";
 
 import * as A from "./actions";
 import couchStyle from "./couch.css?managed";
-import { isKeyboardUp, startKeyboardWatch, stopKeyboardWatch } from "./keyboard";
+import { isKeyboardUp, setOnKeyboardClosed, startKeyboardWatch, stopKeyboardWatch } from "./keyboard";
 import * as N from "./nav";
 import * as S from "./shell";
 import style from "./style.css?managed";
@@ -372,6 +372,13 @@ export default definePlugin({
 
     start() {
         if (settings.store.fullscreen) Native?.setFullscreen?.(true);
+        // The Windows keyboard takes the controller while it's open, so its own B
+        // closes it without us seeing the press: leave typing mode when it goes.
+        setOnKeyboardClosed(() => {
+            if (!typing) return;
+            typing = false;
+            N.setRingHidden(false);
+        });
         startKeyboardWatch();
         Native?.warmTouchKeyboard?.();
         A.loadRecentVoice().then(() => A.recordVoiceJoin(A.currentVoiceChannelId()));
