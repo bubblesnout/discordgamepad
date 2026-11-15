@@ -199,6 +199,7 @@ body.vc-gpn-shell-open .vc-gpn-ring { display: none; }
 .vc-gpn-shelf {
     --gpn-gap: 16px;
 
+    position: relative;
     display: flex;
     gap: var(--gpn-gap);
     overflow-x: auto;
@@ -482,4 +483,13 @@ body.vc-gpn-shell-open .vc-gpn-ring { display: none; }
     background: #dcdedf;
     color: #12171f;
     box-shadow: 0 0 18px rgb(26 159 255 / 45%);
+}
+
+/* touch keyboard open: shrink Discord so the message box sits on top of it */
+body.vc-gpn-kb #app-mount {
+    height: calc(100% - var(--gpn-kb, 0px)) !important;
+}
+
+body.vc-gpn-kb .vc-gpn-shell {
+    bottom: var(--gpn-kb, 0px);
 }

@@ -60,6 +60,7 @@ let items: Item[] = [];
 const selected: Record<string, string> = {};
 let lastHtml = "";
 let lastScrolledTo = "";
+let lastView = "";
 let timer: any;
 let toastTimer: any;
 
@@ -441,9 +442,12 @@ export function render() {
         + `<kbd>RB</kbd></div>`
         + `<div class="vc-gpn-status">${vc ? `<b class="ok">● ${esc(vc.name || "Call")}</b>` : ""}${live ? '<b class="live">LIVE</b>' : ""}${A.isSelfMute() ? "<span>🔇</span>" : ""}<span>${clock}</span></div>`;
 
+    // Selection isn't part of the HTML: it's a class toggled below, so moving
+    // doesn't rebuild the DOM (which would reset shelf scroll and skip the
+    // lift transition).
     const html = sections.map(s => {
         const body = s.items.length
-            ? s.items.map(it => itemHtml(it, it.id === sel, s.layout)).join("")
+            ? s.items.map(it => itemHtml(it, false, s.layout)).join("")
             : `<div class="vc-gpn-empty">${esc(s.empty ?? "Nothing here")}</div>`;
         return `<section><h3>${esc(s.title)}</h3><div class="vc-gpn-${s.layout}">${body}</div></section>`;
     }).join("");
@@ -460,16 +464,46 @@ export function render() {
     ].join("");
     if (footer.innerHTML !== hints) footer.innerHTML = hints;
     if (html !== lastHtml) {
+        // keep each shelf's horizontal position across a rebuild of the same view
+        const keep = key === lastView ? [...content.querySelectorAll<HTMLElement>(".vc-gpn-shelf")].map(s => s.scrollLeft) : [];
         content.innerHTML = html;
         lastHtml = html;
+        content.querySelectorAll<HTMLElement>(".vc-gpn-shelf").forEach((s, i) => { if (keep[i]) s.scrollLeft = keep[i]; });
     }
-    const selEl = content.querySelector<HTMLElement>(".vc-gpn-sel");
+    for (const el of content.querySelectorAll<HTMLElement>(".vc-gpn-sel"))
+        if (el.dataset.id !== sel) el.classList.remove("vc-gpn-sel");
+    const selEl = sel ? content.querySelector<HTMLElement>(`.vc-gpn-it[data-id="${CSS.escape(sel)}"]`) : null;
+    selEl?.classList.add("vc-gpn-sel");
     // only scroll when the selection moves, so the periodic refresh doesn't
     // fight the right stick
-    if (selEl && viewKey() + sel !== lastScrolledTo) {
-        lastScrolledTo = viewKey() + sel;
-        scrollToSelected(selEl);
+    if (selEl && key + sel !== lastScrolledTo) {
+        lastScrolledTo = key + sel;
+        scrollToSelected(selEl, key === lastView);
     }
+    lastView = key;
+}
+
+/** Ease a shelf to `to` (Big Picture style). Looks the shelf up by index each
+ *  frame, so a re-render mid-animation doesn't strand it on a detached node. */
+let shelfAnim = 0;
+function animateShelf(shelf: HTMLElement, to: number, animate: boolean) {
+    cancelAnimationFrame(shelfAnim);
+    to = Math.round(Math.max(0, Math.min(to, shelf.scrollWidth - shelf.clientWidth)));
+    const from = shelf.scrollLeft;
+    if (!animate || Math.abs(to - from) < 2 || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        shelf.scrollLeft = to;
+        return;
+    }
+    const idx = [...content.querySelectorAll(".vc-gpn-shelf")].indexOf(shelf);
+    const start = performance.now(), dur = 240;
+    const step = (now: number) => {
+        const s = content.querySelectorAll<HTMLElement>(".vc-gpn-shelf")[idx];
+        if (!s) return;
+        const t = Math.min(1, (now - start) / dur);
+        s.scrollLeft = from + (to - from) * (1 - (1 - t) ** 3); // ease-out cubic
+        if (t < 1) shelfAnim = requestAnimationFrame(step);
+    };
+    shelfAnim = requestAnimationFrame(step);
 }
 
 /**
@@ -480,7 +514,7 @@ export function render() {
  *    when that still leaves the item on screen
  *  - shelves: centre the item horizontally
  */
-function scrollToSelected(el: HTMLElement) {
+function scrollToSelected(el: HTMLElement, animate: boolean) {
     const pad = 24;
     const sr = scroller.getBoundingClientRect();
     const toContent = (y: number) => y - sr.top + scroller.scrollTop;
@@ -507,9 +541,9 @@ function scrollToSelected(el: HTMLElement) {
 
     const shelf = el.parentElement;
     if (shelf?.classList.contains("vc-gpn-shelf")) {
-        const shr = shelf.getBoundingClientRect();
-        const left = r.left - shr.left + shelf.scrollLeft - (shelf.clientWidth - el.offsetWidth) / 2;
-        shelf.scrollTo({ left: Math.max(0, left) });
+        // the shelf is position:relative, so offsetLeft is within its scroll
+        // content and ignores the lift transform
+        animateShelf(shelf, el.offsetLeft - (shelf.clientWidth - el.offsetWidth) / 2, animate);
     }
 }
 
@@ -540,7 +574,6 @@ function onTap(e: MouseEvent) {
     } else {
         item?.onA?.();
     }
-    lastHtml = "";
     render();
     setTimeout(render, 150);
 }
@@ -599,7 +632,6 @@ export function handle(btn: Dir | "a" | "x" | "y") {
         case "x": it?.onX?.(); break;
         case "y": it?.onY?.(); break;
     }
-    lastHtml = ""; // selection changed: force redraw
     render();
     setTimeout(render, 150); // stores update async
 }

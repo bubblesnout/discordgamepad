@@ -16,6 +16,7 @@ import definePlugin, { OptionType, PluginNative } from "@utils/types";
 
 import * as A from "./actions";
 import couchStyle from "./couch.css?managed";
+import { startKeyboardWatch, stopKeyboardWatch } from "./keyboard";
 import * as N from "./nav";
 import * as S from "./shell";
 import style from "./style.css?managed";
@@ -26,6 +27,12 @@ const settings = definePluginSettings({
         description: "10-foot mode: full-screen chat with no sidebars (use the menu with B / LB / RB instead)",
         default: true,
         onChange: (v: boolean) => document.body.classList.toggle("vc-gpn-10ft", v),
+    },
+    fullscreen: {
+        type: OptionType.BOOLEAN,
+        description: "True fullscreen (like F11) when Discord starts, above the handheld taskbar",
+        default: true,
+        onChange: (v: boolean) => { Native?.setFullscreen?.(v); },
     },
     openOnStart: {
         type: OptionType.BOOLEAN,
@@ -90,51 +97,10 @@ function setClassic(on: boolean) {
     }
 }
 
-// Controller state forwarded by DiscordHost.exe (see native.ts). Used instead of
-// the Gamepad API when present, since Chromium only feeds that to the focused window.
+// Electron main-process helpers (see native.ts): quit, fullscreen
 const Native = VencordNative.pluginHelpers.GamepadNav as PluginNative<typeof import("./native")>;
-let hostPad: Gamepad | null = null;
-let hostPoll = false;
-let hostConnected = false;
-
-// XInput wButtons bit -> standard-mapping button index
-const XI_BITS: [number, number][] = [
-    [0x1000, 0], [0x2000, 1], [0x4000, 2], [0x8000, 3], // A B X Y
-    [0x0100, 4], [0x0200, 5],                           // LB RB
-    [0x0020, 8], [0x0010, 9], [0x0040, 10], [0x0080, 11], // View Start L3 R3
-    [0x0001, 12], [0x0002, 13], [0x0004, 14], [0x0008, 15], // D-pad
-];
-
-function pollHost() {
-    if (hostPoll || !Native?.getPad) return;
-    hostPoll = true;
-    Native.getPad().then(bytes => {
-        hostPoll = false;
-        if (!bytes) {
-            hostPad = null;
-            hostConnected = false;
-            return;
-        }
-        if (!hostConnected) {
-            hostConnected = true;
-            S.toast("Controller connected via Steam host · View for help");
-        }
-        const b = new DataView(new Uint8Array(bytes).buffer);
-        const wb = b.getUint16(0, true);
-        const buttons = Array.from({ length: 16 }, () => ({ pressed: false, touched: false, value: 0 }));
-        for (const [bit, i] of XI_BITS) if (wb & bit) buttons[i] = { pressed: true, touched: true, value: 1 };
-        const lt = b.getUint8(2) / 255, rt = b.getUint8(3) / 255;
-        buttons[6] = { pressed: lt > 0.5, touched: lt > 0, value: lt };
-        buttons[7] = { pressed: rt > 0.5, touched: rt > 0, value: rt };
-        const ax = (o: number) => Math.max(-1, b.getInt16(o, true) / 32767);
-        // XInput Y is up-positive; the standard mapping is down-positive
-        hostPad = { connected: true, timestamp: performance.now(), buttons, axes: [ax(4), -ax(6), ax(8), -ax(10)], id: "DiscordHost XInput", mapping: "standard", index: 0 } as any;
-    }, () => { hostPoll = false; });
-}
 
 function readPad(): Gamepad | null {
-    pollHost();
-    if (hostPad) return hostPad;
     let best: Gamepad | null = null;
     for (const p of navigator.getGamepads?.() ?? []) {
         if (p?.connected && (!best || p.timestamp > best.timestamp)) best = p;
@@ -401,7 +367,8 @@ export default definePlugin({
     },
 
     start() {
-        Native?.startListening?.();
+        if (settings.store.fullscreen) Native?.setFullscreen?.(true);
+        startKeyboardWatch();
         A.loadRecentVoice().then(() => A.recordVoiceJoin(A.currentVoiceChannelId()));
         S.settingsRef.autoConfirmGoLive = settings.store.autoConfirmGoLive;
         S.settingsRef.volumeStep = settings.store.volumeStep;
@@ -421,7 +388,7 @@ export default definePlugin({
     },
 
     stop() {
-        Native?.stopListening?.();
+        stopKeyboardWatch();
         clearInterval(timer);
         window.removeEventListener("gamepadconnected", onConnect);
         window.removeEventListener("mousemove", onMouse);

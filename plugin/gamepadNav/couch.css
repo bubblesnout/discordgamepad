@@ -67,7 +67,7 @@ body.vc-gpn-10ft main[class*="chatContent_"] [class*="messageContent"] {
     font-size: 1.35rem !important;
 }
 
-/* under the Steam host the window controls do nothing useful */
+/* in fullscreen 10-foot mode the window controls do nothing useful */
 body.vc-gpn-10ft [class*="winButton"] {
     display: none !important;
 }

@@ -31,16 +31,4 @@ try {
     }
 } finally { Pop-Location }
 
-# Steam host app: build and install to a stable path (point the Steam shortcut here)
-if (-not $Quick -and (Get-Command cargo -ErrorAction SilentlyContinue)) {
-    Push-Location (Join-Path $root "host")
-    try {
-        cargo build --release
-        $hostDir = Join-Path $env:LOCALAPPDATA "DiscordHost"
-        New-Item -ItemType Directory -Force $hostDir | Out-Null
-        Copy-Item "target\release\DiscordHost.exe" $hostDir -Force
-        Write-Host "Host installed to $hostDir\DiscordHost.exe" -ForegroundColor Green
-    } finally { Pop-Location }
-}
-
 Write-Host "Done. After editing the plugin: .\setup.ps1 -Quick, then Ctrl+R in Discord" -ForegroundColor Green
