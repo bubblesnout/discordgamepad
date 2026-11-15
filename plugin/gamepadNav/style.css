@@ -39,11 +39,24 @@ body.vc-gpn-shell-open .vc-gpn-ring { display: none; }
 }
 
 /* top bar: brand left, LB [tabs] RB centred, status + clock right */
+/* top bar: LB | brand ... [pills, centred] ... status | RB (Big Picture layout) */
 .vc-gpn-tabs {
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: auto 1fr auto 1fr auto;
     align-items: center;
-    padding: 22px 48px 10px;
+    gap: 18px;
+    padding: 22px 28px 10px;
+}
+
+.vc-gpn-bumper {
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgb(255 255 255 / 14%);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--gpn-text);
+    cursor: pointer;
 }
 
 .vc-gpn-brand {

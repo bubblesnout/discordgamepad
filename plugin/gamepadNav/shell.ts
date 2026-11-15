@@ -501,11 +501,13 @@ export function render() {
     const live = !!A.myActiveStream();
     const vc = A.currentVoiceChannel();
     const clock = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-    const tabsHtml = `<div class="vc-gpn-brand">Discord</div>`
-        + `<div class="vc-gpn-pills"><kbd>LB</kbd>`
+    // Big Picture layout: bumper glyphs pinned to the screen edges, pills centred
+    const tabsHtml = `<kbd class="vc-gpn-bumper" data-bumper="lb">LB</kbd><div class="vc-gpn-brand">Discord</div>`
+        + `<div class="vc-gpn-pills">`
         + TABS.map(t => `<span data-tab="${t}" class="${t === tab ? "on" : ""}">${TAB_NAMES[t]}</span>`).join("")
-        + `<kbd>RB</kbd></div>`
-        + `<div class="vc-gpn-status">${vc ? `<b class="ok">● ${esc(vc.name || "Call")}</b>` : ""}${live ? '<b class="live">LIVE</b>' : ""}${A.isSelfMute() ? "<span>🔇</span>" : ""}<span>${clock}</span></div>`;
+        + `</div>`
+        + `<div class="vc-gpn-status">${vc ? `<b class="ok">● ${esc(vc.name || "Call")}</b>` : ""}${live ? '<b class="live">LIVE</b>' : ""}${A.isSelfMute() ? "<span>🔇</span>" : ""}<span>${clock}</span></div>`
+        + `<kbd class="vc-gpn-bumper" data-bumper="rb">RB</kbd>`;
 
     // Selection isn't part of the HTML: it's a class toggled below, so moving
     // doesn't rebuild the DOM (which would reset shelf scroll and skip the
@@ -619,6 +621,8 @@ const glyph = (cls: string, k: string, label: string) => `<span data-btn="${cls}
 // Tap a tile = select it and press A. Tap a tab = switch. Tap a footer hint = that button.
 function onTap(e: MouseEvent) {
     const t = e.target as HTMLElement;
+    const bumper = t.closest<HTMLElement>("[data-bumper]")?.dataset.bumper;
+    if (bumper) return cycleTab(bumper === "rb" ? 1 : -1);
     const tabEl = t.closest<HTMLElement>("[data-tab]");
     if (tabEl) return show(tabEl.dataset.tab as Tab);
     const btn = t.closest<HTMLElement>("[data-btn]")?.dataset.btn;
