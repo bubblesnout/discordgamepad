@@ -607,3 +607,15 @@ body.vc-gpn-kb .vc-gpn-shell {
 .vc-gpn-scroll { padding-left: calc(40px * var(--gpn-space, 1.25)); padding-right: calc(40px * var(--gpn-space, 1.25)); }
 .vc-gpn-shelf .vc-gpn-txt,
 .vc-gpn-tiles .vc-gpn-txt { padding: calc(8px * var(--gpn-space, 1.25)) calc(10px * var(--gpn-space, 1.25)); }
+
+/* Shelves scroll sideways, so they clip anything outside their box. Give the
+   focus "lift" (scale + outline + glow) room at the ends of the row; the room
+   grows with screen width because tiles get bigger on larger displays (1440p+).
+   The negative margin keeps the tiles lined up with the rest of the page. */
+.vc-gpn-shelf {
+    --gpn-shelf-pad: max(24px, 2%);
+
+    padding: 22px var(--gpn-shelf-pad) 26px;
+    margin: -22px calc(-1 * var(--gpn-shelf-pad)) 0;
+    scroll-padding-inline: var(--gpn-shelf-pad);
+}
