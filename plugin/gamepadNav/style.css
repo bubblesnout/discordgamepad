@@ -619,3 +619,9 @@ body.vc-gpn-kb .vc-gpn-shell {
     margin: -22px calc(-1 * var(--gpn-shelf-pad)) 0;
     scroll-padding-inline: var(--gpn-shelf-pad);
 }
+
+/* the page margin must stay at least as wide as the shelves' overhang */
+.vc-gpn-scroll {
+    padding-left: max(calc(40px * var(--gpn-space, 1.25)), calc(max(24px, 2%) + 8px));
+    padding-right: max(calc(40px * var(--gpn-space, 1.25)), calc(max(24px, 2%) + 8px));
+}
